@@ -3,6 +3,7 @@
 #include <QVBoxLayout>
 #include <QLabel>
 #include <QWidget>
+#include <QDebug>
 
 #include "simulation/Circuit.h"
 #include "core/Arduino.h"

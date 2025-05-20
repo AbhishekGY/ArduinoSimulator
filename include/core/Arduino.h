@@ -6,10 +6,8 @@
 #include <QHash>
 #include <QTimer>
 #include <QString>
+#include "ArduinoPin.h"
 
-class DigitalPin;
-class AnalogPin;
-class ArduinoPin;
 class Circuit;
 
 class Arduino : public QObject
