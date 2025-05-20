@@ -23,6 +23,20 @@ public:
         MEGA
     };
 
+    // Pin mode constants
+    static const int INPUT = 0;
+    static const int OUTPUT = 1;
+    static const int INPUT_PULLUP = 2;
+
+    // Digital state constants  
+    static const int LOW = 0;
+    static const int HIGH = 1;
+
+    // Analog reference types
+    static const int DEFAULT = 1;
+    static const int INTERNAL = 3;
+    static const int EXTERNAL = 0;
+
     explicit Arduino(BoardType board = UNO, QObject *parent = nullptr);
     ~Arduino();
 
@@ -137,20 +151,6 @@ private:
 
     // Analog reference
     double m_analogReference;
-
-    // Pin mode constants
-    static const int INPUT = 0;
-    static const int OUTPUT = 1;
-    static const int INPUT_PULLUP = 2;
-
-    // Digital state constants  
-    static const int LOW = 0;
-    static const int HIGH = 1;
-
-    // Analog reference types
-    static const int DEFAULT = 1;
-    static const int INTERNAL = 3;
-    static const int EXTERNAL = 0;
 };
 
 // Helper class for special Arduino pins (VCC, GND)
