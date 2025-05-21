@@ -15,6 +15,7 @@ Circuit::Circuit(QObject *parent)
     , m_simulationRunning(false)
     , m_groundNode(nullptr)
     , m_nodeCounter(1)
+    , m_externalComponents()
 {
     // Create ground node by default
     m_groundNode = createNode();
@@ -36,6 +37,12 @@ Circuit::~Circuit()
 void Circuit::addComponent(Component *component)
 {
     if (component && !m_components.contains(component)) {
+        // If component belongs to Arduino, mark as external
+        ArduinoPin* pin = qobject_cast<ArduinoPin*>(component);
+        if (pin && pin->getArduino()) {
+            m_externalComponents.insert(component);
+        }
+        
         m_components.append(component);
         component->setCircuit(this);
         emit circuitChanged();
@@ -44,10 +51,7 @@ void Circuit::addComponent(Component *component)
 
 void Circuit::removeComponent(Component *component)
 {
-    if (m_components.removeOne(component)) {
-        component->setCircuit(nullptr);
-        emit circuitChanged();
-    }
+    removeComponentSafely(component);
 }
 
 Node *Circuit::createNode()
@@ -493,4 +497,74 @@ bool Circuit::createSimpleArduinoLEDCircuit(Arduino* arduino, LED* led, Resistor
     
     qDebug() << "Created simple Arduino LED circuit with pin 13";
     return true;
+}
+
+bool Circuit::isComponentInCircuit(Component* component) const
+{
+    return m_components.contains(component);
+}
+
+void Circuit::disconnectComponent(Component* component)
+{
+    if (!component) return;
+    
+    // Disconnect from all connected nodes
+    for (int i = 0; i < component->getTerminalCount(); i++) {
+        Node* node = component->getNode(i);
+        if (node) {
+            component->disconnectFromNode(i);
+        }
+    }
+}
+
+void Circuit::removeComponentSafely(Component* component)
+{
+    if (!component) return;
+    
+    // First disconnect from all nodes
+    disconnectComponent(component);
+    
+    // Then remove from components list
+    if (m_components.removeOne(component)) {
+        component->setCircuit(nullptr);
+        
+        // If this is not an external component, delete it
+        if (!m_externalComponents.contains(component)) {
+            component->deleteLater();
+        } else {
+            m_externalComponents.remove(component);
+        }
+        
+        emit circuitChanged();
+    }
+}
+
+void Circuit::removeAllComponents()
+{
+    // Make a copy of components list since we'll be modifying it
+    QVector<Component*> componentsCopy = m_components;
+    
+    // Remove each component safely
+    for (Component* component : componentsCopy) {
+        removeComponentSafely(component);
+    }
+    
+    // Make sure lists are clear
+    m_components.clear();
+    m_externalComponents.clear();
+}
+
+void Circuit::clearArduinoConnections(Arduino* arduino)
+{
+    if (!arduino) return;
+    
+    QVector<ArduinoPin*> allPins = arduino->getAllPins();
+    for (ArduinoPin* pin : allPins) {
+        if (pin && isComponentInCircuit(pin)) {
+            // Mark as external so we don't delete it
+            m_externalComponents.insert(pin);
+            // Disconnect and remove from circuit
+            removeComponentSafely(pin);
+        }
+    }
 }

@@ -55,31 +55,50 @@ bool setupArduinoLEDCircuit()
 // Clean up function for proper cleanup
 void cleanupCircuit()
 {
-    if (g_arduino && g_circuit) {
-        // Disconnect Arduino pins from the circuit
-        ArduinoPin* pin13 = g_arduino->getPin(13);
-        ArduinoPin* groundPin = g_arduino->getGroundPin();
-        
-        if (pin13 && pin13->getNode(0)) {
-            pin13->disconnectFromNode(0);
-        }
-        
-        if (groundPin && groundPin->getNode(0)) {
-            groundPin->disconnectFromNode(0);
-        }
+    // Safety check
+    if (!g_arduino || !g_circuit) {
+        qDebug() << "Nothing to clean up";
+        return;
     }
     
-    // Delete in proper order to avoid double-deletion
-    delete g_arduino;
-    delete g_circuit;
-    
-    // Set to null to avoid use-after-free
-    g_arduino = nullptr;
-    g_circuit = nullptr;
-    g_led = nullptr;      // LED is owned by circuit
-    g_resistor = nullptr; // Resistor is owned by circuit
-    
-    qDebug() << "Circuit cleaned up successfully";
+    try {
+        // Stop simulation if running
+        if (g_circuit->isSimulationRunning()) {
+            g_circuit->stopSimulation();
+        }
+        
+        // Power off Arduino
+        if (g_arduino->isPoweredOn()) {
+            g_arduino->powerOff();
+        }
+        
+        // Use our safer circuit method to handle Arduino pins properly
+        g_circuit->clearArduinoConnections(g_arduino);
+        
+        // Store local copies of pointers
+        Arduino* arduino = g_arduino;
+        Circuit* circuit = g_circuit;
+        
+        // Clear global pointers first to prevent use-after-free
+        g_arduino = nullptr;
+        g_circuit = nullptr;
+        g_led = nullptr;
+        g_resistor = nullptr;
+        
+        // Delete Arduino first (which will clean up its pins)
+        qDebug() << "Deleting Arduino";
+        delete arduino;
+        
+        // Then delete circuit (which will clean up other components)
+        qDebug() << "Deleting Circuit";
+        delete circuit;
+        
+        qDebug() << "Circuit cleaned up successfully";
+    } catch (const std::exception& e) {
+        qDebug() << "Exception during cleanup:" << e.what();
+    } catch (...) {
+        qDebug() << "Unknown exception during cleanup";
+    }
 }
 
 // Main application with interactive UI

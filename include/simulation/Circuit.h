@@ -7,6 +7,7 @@
 #include <QMutex>
 #include <QString>
 #include <QStringList>
+#include <QSet>
 
 class Component;
 class Node;
@@ -71,6 +72,13 @@ public:
     // Circuit changes (existing)
     void componentChanged(Component *component);
 
+    // Safety methods for component management
+    bool isComponentInCircuit(Component* component) const;
+    void disconnectComponent(Component* component);
+    void removeComponentSafely(Component* component);
+    void removeAllComponents();
+    void clearArduinoConnections(Arduino* arduino);
+
 signals:
     void simulationStarted();
     void simulationStopped();
@@ -92,6 +100,7 @@ private:
     Node* m_groundNode;
     QHash<QString, Node*> m_namedNodes;  // For ground, VCC, etc.
     int m_nodeCounter;
+    QSet<Component*> m_externalComponents;
 };
 
 #endif // CIRCUIT_H
