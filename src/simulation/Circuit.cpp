@@ -89,7 +89,7 @@ void Circuit::stopSimulation()
     emit simulationStopped();
 }
 
-void Circuit::onSimulationStep()
+void Circuit::onSimulationStep(int step, double time)
 {
     // TODO: Implement simulation step
 }

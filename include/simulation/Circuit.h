@@ -80,12 +80,12 @@ public:
     void clearArduinoConnections(Arduino* arduino);
 
 signals:
-    void simulationStarted();
-    void simulationStopped();
     void circuitChanged();
 
-private slots:
-    void onSimulationStep();
+public slots:
+    void simulationStarted();
+    void simulationStopped();
+    void onSimulationStep(int step, double time);
 
 private:
     // Existing members
