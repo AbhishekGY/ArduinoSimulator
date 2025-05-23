@@ -5,14 +5,13 @@
 #include <QVector>
 #include <QHash>
 #include <QMutex>
-#include <QString>
-#include <QStringList>
 #include <QSet>
 
 class Component;
 class Node;
 class CircuitSimulator;
 class Arduino;
+class ArduinoPin;
 class LED;
 class Resistor;
 class Wire;
@@ -25,81 +24,85 @@ public:
     explicit Circuit(QObject *parent = nullptr);
     ~Circuit();
 
-    // Component management (existing)
+    // Component management
     void addComponent(Component *component);
     void removeComponent(Component *component);
     const QVector<Component*> &getComponents() const { return m_components; }
 
-    // Node management (existing + new)
+    // Node management
     Node *createNode();
     void removeNode(Node *node);
     const QVector<Node*> &getNodes() const { return m_nodes; }
-    
-    // NEW: Enhanced node management
-    Node* findOrCreateNode(const QString& nodeName = QString());
+
+    // Enhanced node management
+    Node* findOrCreateNode(const QString& nodeName);
     Node* getGroundNode();
     void setGroundNode(Node* node);
-    
-    // NEW: Component connection methods
+
+    // Component connection methods
     bool connectComponents(Component* comp1, int terminal1, 
                           Component* comp2, int terminal2);
     bool connectComponentToNode(Component* component, int terminal, Node* node);
     void disconnectComponent(Component* component, int terminal);
-    
-    // NEW: Wire management  
+    void disconnectComponent(Component* component); // Disconnect all terminals
+
+    // Wire management
     Wire* addWire(Node* fromNode, Node* toNode);
     void removeWire(Wire* wire);
-    const QVector<Wire*>& getWires() const { return m_wires; }
-    
-    // NEW: Arduino integration
+    const QVector<Wire*> &getWires() const { return m_wires; }
+
+    // Arduino integration methods
     bool connectArduinoPin(Arduino* arduino, int pinNumber, Node* node);
     bool connectArduinoPinByName(Arduino* arduino, const QString& pinName, Node* node);
     void disconnectArduinoPin(Arduino* arduino, int pinNumber);
-    
-    // NEW: Circuit validation
+
+    // Circuit validation
     bool validateConnections() const;
     QStringList getConnectionIssues() const;
-    
-    // NEW: Helper methods for Arduino circuits
+
+    // Helper methods
     Node* createVccNode(double voltage = 5.0);
     bool createSimpleArduinoLEDCircuit(Arduino* arduino, LED* led, Resistor* resistor);
-
-    // Simulation (existing)
-    void startSimulation();
-    void stopSimulation();
-    bool isSimulationRunning() const { return m_simulationRunning; }
-
-    // Circuit changes (existing)
-    void componentChanged(Component *component);
-
-    // Safety methods for component management
     bool isComponentInCircuit(Component* component) const;
-    void disconnectComponent(Component* component);
+
+    // Component cleanup
     void removeComponentSafely(Component* component);
     void removeAllComponents();
     void clearArduinoConnections(Arduino* arduino);
 
+    // Simulation status
+    bool isSimulationRunning() const { return m_simulationRunning; }
+
+    // Circuit changes
+    void componentChanged(Component *component);
+
+    // Simulator integration
+    void setSimulator(CircuitSimulator* simulator) { m_simulator = simulator; }
+    CircuitSimulator* getSimulator() const { return m_simulator; }
+
+public slots:
+    // Simulation control slots (called by CircuitSimulator)
+    void startSimulation();
+    void stopSimulation();
+    void onSimulationStep(int step, double time);
+
 signals:
     void circuitChanged();
 
-public slots:
-    void simulationStarted();
-    void simulationStopped();
-    void onSimulationStep(int step, double time);
-
 private:
-    // Existing members
     QVector<Component*> m_components;
     QVector<Node*> m_nodes;
+    QVector<Wire*> m_wires;
     CircuitSimulator *m_simulator;
     bool m_simulationRunning;
     QMutex m_circuitMutex;
-    
-    // NEW: Additional members for connection management
-    QVector<Wire*> m_wires;
+
+    // Enhanced node management
     Node* m_groundNode;
-    QHash<QString, Node*> m_namedNodes;  // For ground, VCC, etc.
     int m_nodeCounter;
+    QHash<QString, Node*> m_namedNodes;
+
+    // External component tracking (components owned by other objects like Arduino)
     QSet<Component*> m_externalComponents;
 };
 

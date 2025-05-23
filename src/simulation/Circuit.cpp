@@ -1,4 +1,5 @@
 #include "simulation/Circuit.h"
+#include "simulation/CircuitSimulator.h"
 #include "core/Component.h"
 #include "core/Arduino.h"
 #include "core/ArduinoPin.h"
@@ -8,7 +9,6 @@
 #include "simulation/Node.h"
 #include <QDebug>
 
-// Updated constructor to initialize new members
 Circuit::Circuit(QObject *parent)
     : QObject(parent)
     , m_simulator(nullptr)
@@ -25,15 +25,18 @@ Circuit::Circuit(QObject *parent)
     m_namedNodes["GROUND"] = m_groundNode;
 }
 
-// Updated destructor to clean up wires
 Circuit::~Circuit()
 {
+    // Stop simulation if running
+    if (m_simulationRunning && m_simulator) {
+        m_simulator->stop();
+    }
+    
     qDeleteAll(m_components);
     qDeleteAll(m_nodes);
     qDeleteAll(m_wires);
 }
 
-// Existing methods (unchanged)
 void Circuit::addComponent(Component *component)
 {
     if (component && !m_components.contains(component)) {
@@ -45,6 +48,11 @@ void Circuit::addComponent(Component *component)
         
         m_components.append(component);
         component->setCircuit(this);
+        
+        // Connect component change signals to trigger simulation updates
+        connect(component, &Component::componentChanged, 
+                this, &Circuit::componentChanged);
+        
         emit circuitChanged();
     }
 }
@@ -64,6 +72,16 @@ Node *Circuit::createNode()
 void Circuit::removeNode(Node *node)
 {
     if (m_nodes.removeOne(node)) {
+        // Remove from named nodes if it exists there
+        auto it = m_namedNodes.begin();
+        while (it != m_namedNodes.end()) {
+            if (it.value() == node) {
+                it = m_namedNodes.erase(it);
+            } else {
+                ++it;
+            }
+        }
+        
         node->deleteLater();
     }
 }
@@ -71,30 +89,42 @@ void Circuit::removeNode(Node *node)
 void Circuit::componentChanged(Component *component)
 {
     Q_UNUSED(component)
-    // TODO: Trigger simulation update
+    
+    // Notify that circuit has changed
     emit circuitChanged();
+    
+    // If we have a simulator and it's running, trigger an update
+    if (m_simulator && m_simulationRunning) {
+        m_simulator->triggerUpdate();
+    }
 }
 
 void Circuit::startSimulation()
 {
-    // TODO: Implement simulation start
-    m_simulationRunning = true;
-    emit simulationStarted();
+    if (!m_simulationRunning) {
+        m_simulationRunning = true;
+        qDebug() << "Circuit simulation started";
+    }
 }
 
 void Circuit::stopSimulation()
 {
-    // TODO: Implement simulation stop
-    m_simulationRunning = false;
-    emit simulationStopped();
+    if (m_simulationRunning) {
+        m_simulationRunning = false;
+        qDebug() << "Circuit simulation stopped";
+    }
 }
 
 void Circuit::onSimulationStep(int step, double time)
 {
-    // TODO: Implement simulation step
+    // Called by CircuitSimulator after each simulation step
+    qDebug() << "Simulation step" << step << "completed at time" << time;
+    
+    // Here you could emit signals to update UI or perform other step-specific actions
+    // For now, we just log the step completion
 }
 
-// NEW: Enhanced node management methods
+// Enhanced node management methods
 Node* Circuit::findOrCreateNode(const QString& nodeName)
 {
     if (!nodeName.isEmpty()) {
@@ -137,10 +167,11 @@ void Circuit::setGroundNode(Node* node)
         }
         
         qDebug() << "Ground node changed to node" << m_groundNode->getId();
+        emit circuitChanged();
     }
 }
 
-// NEW: Component connection methods
+// Component connection methods
 bool Circuit::connectComponents(Component* comp1, int terminal1, 
                                Component* comp2, int terminal2)
 {
@@ -173,6 +204,8 @@ bool Circuit::connectComponents(Component* comp1, int terminal1,
         qDebug() << "Connected" << comp1->getName() << "terminal" << terminal1
                  << "to" << comp2->getName() << "terminal" << terminal2
                  << "via new node" << node->getId();
+        
+        emit circuitChanged();
         return true;
     }
     
@@ -180,12 +213,14 @@ bool Circuit::connectComponents(Component* comp1, int terminal1,
     if (node1 && !node2) {
         comp2->connectToNode(node1, terminal2);
         qDebug() << "Connected" << comp2->getName() << "to existing node" << node1->getId();
+        emit circuitChanged();
         return true;
     }
     
     if (node2 && !node1) {
         comp1->connectToNode(node2, terminal1);
         qDebug() << "Connected" << comp1->getName() << "to existing node" << node2->getId();
+        emit circuitChanged();
         return true;
     }
     
@@ -202,6 +237,7 @@ bool Circuit::connectComponents(Component* comp1, int terminal1,
         removeNode(node2);
         
         qDebug() << "Merged nodes" << node1->getId() << "and" << node2->getId();
+        emit circuitChanged();
         return true;
     }
     
@@ -223,6 +259,8 @@ bool Circuit::connectComponentToNode(Component* component, int terminal, Node* n
     component->connectToNode(node, terminal);
     qDebug() << "Connected" << component->getName() << "terminal" << terminal
              << "to node" << node->getId();
+    
+    emit circuitChanged();
     return true;
 }
 
@@ -249,10 +287,27 @@ void Circuit::disconnectComponent(Component* component, int terminal)
         if (node->getConnections().isEmpty() && node != m_groundNode) {
             removeNode(node);
         }
+        
+        emit circuitChanged();
     }
 }
 
-// NEW: Wire management
+void Circuit::disconnectComponent(Component* component)
+{
+    if (!component) return;
+    
+    // Disconnect from all connected nodes
+    for (int i = 0; i < component->getTerminalCount(); i++) {
+        Node* node = component->getNode(i);
+        if (node) {
+            component->disconnectFromNode(i);
+        }
+    }
+    
+    emit circuitChanged();
+}
+
+// Wire management
 Wire* Circuit::addWire(Node* fromNode, Node* toNode)
 {
     if (!fromNode || !toNode) {
@@ -302,7 +357,7 @@ void Circuit::removeWire(Wire* wire)
     qDebug() << "Removed wire";
 }
 
-// NEW: Arduino integration methods
+// Arduino integration methods
 bool Circuit::connectArduinoPin(Arduino* arduino, int pinNumber, Node* node)
 {
     if (!arduino || !node) {
@@ -404,7 +459,7 @@ void Circuit::disconnectArduinoPin(Arduino* arduino, int pinNumber)
     qDebug() << "Disconnected Arduino pin" << pinNumber;
 }
 
-// NEW: Circuit validation methods
+// Circuit validation methods
 bool Circuit::validateConnections() const
 {
     QStringList issues = getConnectionIssues();
@@ -444,7 +499,7 @@ QStringList Circuit::getConnectionIssues() const
     return issues;
 }
 
-// NEW: Helper methods
+// Helper methods
 Node* Circuit::createVccNode(double voltage)
 {
     Node* vccNode = findOrCreateNode("VCC");
@@ -504,25 +559,16 @@ bool Circuit::isComponentInCircuit(Component* component) const
     return m_components.contains(component);
 }
 
-void Circuit::disconnectComponent(Component* component)
-{
-    if (!component) return;
-    
-    // Disconnect from all connected nodes
-    for (int i = 0; i < component->getTerminalCount(); i++) {
-        Node* node = component->getNode(i);
-        if (node) {
-            component->disconnectFromNode(i);
-        }
-    }
-}
-
 void Circuit::removeComponentSafely(Component* component)
 {
     if (!component) return;
     
     // First disconnect from all nodes
     disconnectComponent(component);
+    
+    // Disconnect the component change signal
+    disconnect(component, &Component::componentChanged, 
+               this, &Circuit::componentChanged);
     
     // Then remove from components list
     if (m_components.removeOne(component)) {
