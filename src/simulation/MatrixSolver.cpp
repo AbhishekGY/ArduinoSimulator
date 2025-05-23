@@ -305,15 +305,31 @@ bool MatrixSolver::isValid() const
     
     // Check if the matrix is singular (determinant near zero)
 #ifdef HAVE_EIGEN3
-    // Compute the determinant (for smaller matrices)
+    // For smaller matrices, compute the determinant
     if (m_dimension <= 4) {
         double det = m_conductanceMatrix.determinant();
         return std::abs(det) > m_epsilon;
     }
     
-    // For larger matrices, check condition number (expensive but thorough)
-    double rcond = m_conductanceMatrix.colPivHouseholderQr().rcond();
-    return rcond > m_epsilon;
+    // For larger matrices, check if any diagonal element is too small
+    // This is a simpler check that works with most Eigen versions
+    for (int i = 0; i < m_dimension; ++i) {
+        if (std::abs(m_conductanceMatrix(i, i)) < m_epsilon) {
+            return false;
+        }
+    }
+    
+    // Additional check: see if matrix has reasonable values
+    double maxElement = m_conductanceMatrix.cwiseAbs().maxCoeff();
+    double minElement = m_conductanceMatrix.cwiseAbs().minCoeff();
+    
+    // Check for reasonable condition (max/min ratio)
+    if (maxElement > 0 && minElement > 0) {
+        double conditionEstimate = maxElement / minElement;
+        return conditionEstimate < 1e12; // Reasonable condition number
+    }
+    
+    return maxElement > m_epsilon;
 #else
     // Simple check for obvious issues
     bool hasDiagonalElements = true;

@@ -51,7 +51,9 @@ void Circuit::addComponent(Component *component)
         
         // Connect component change signals to trigger simulation updates
         connect(component, &Component::componentChanged, 
-                this, &Circuit::componentChanged);
+                this, [this, component]() {
+                    this->componentChanged(component);
+                });
         
         emit circuitChanged();
     }
@@ -568,7 +570,7 @@ void Circuit::removeComponentSafely(Component* component)
     
     // Disconnect the component change signal
     disconnect(component, &Component::componentChanged, 
-               this, &Circuit::componentChanged);
+               this, nullptr); // Disconnect all connections from this signal to this object
     
     // Then remove from components list
     if (m_components.removeOne(component)) {
