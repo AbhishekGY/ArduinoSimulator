@@ -346,7 +346,11 @@ void CircuitSimulator::onComponentChanged()
     // A component has changed state - trigger a simulation update
     if (m_running) {
         qDebug() << "DEBUG: Component state changed, triggering simulation update";
-        triggerUpdate();
+
+        if(m_running)
+        {
+            triggerUpdate();
+        }
     } else {
         qDebug() << "DEBUG: Component changed but simulation not running";
     }
@@ -362,7 +366,10 @@ void CircuitSimulator::onCircuitChanged()
     
     if (m_running) {
         qDebug() << "DEBUG: Circuit changed and running, triggering update";
-        triggerUpdate();
+        if(m_running)
+        {
+            triggerUpdate();
+        }
     } else {
         qDebug() << "DEBUG: Circuit changed but not running";
     }
