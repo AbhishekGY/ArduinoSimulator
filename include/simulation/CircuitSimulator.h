@@ -60,7 +60,6 @@ public slots:
     void triggerUpdate();
     
     // Handle component changes
-    void onComponentChanged();
     void onCircuitChanged();
 
 signals:

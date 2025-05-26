@@ -339,22 +339,22 @@ void CircuitSimulator::doUpdate()
     qDebug() << "DEBUG: CircuitSimulator::doUpdate() completed, isUpdating=false";
 }
 
-void CircuitSimulator::onComponentChanged()
-{
-    qDebug() << "DEBUG: CircuitSimulator::onComponentChanged() called";
+// void CircuitSimulator::onComponentChanged()
+// {
+//     qDebug() << "DEBUG: CircuitSimulator::onComponentChanged() called";
     
-    // A component has changed state - trigger a simulation update
-    if (m_running) {
-        qDebug() << "DEBUG: Component state changed, triggering simulation update";
+//     // A component has changed state - trigger a simulation update
+//     if (m_running) {
+//         qDebug() << "DEBUG: Component state changed, triggering simulation update";
 
-        if(m_running)
-        {
-            triggerUpdate();
-        }
-    } else {
-        qDebug() << "DEBUG: Component changed but simulation not running";
-    }
-}
+//         if(m_running)
+//         {
+//             triggerUpdate();
+//         }
+//     } else {
+//         qDebug() << "DEBUG: Component changed but simulation not running";
+//     }
+// }
 
 void CircuitSimulator::onCircuitChanged()
 {

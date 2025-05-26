@@ -94,11 +94,6 @@ void Circuit::componentChanged(Component *component)
     
     // Notify that circuit has changed
     emit circuitChanged();
-    
-    // If we have a simulator and it's running, trigger an update
-    if (m_simulator && m_simulationRunning) {
-        m_simulator->triggerUpdate();
-    }
 }
 
 void Circuit::startSimulation()
@@ -174,9 +169,13 @@ void Circuit::setGroundNode(Node* node)
 }
 
 // Component connection methods
+// For future UI - connects components directly without manual node management
 bool Circuit::connectComponents(Component* comp1, int terminal1, 
                                Component* comp2, int terminal2)
 {
+
+    bool changed = false;
+
     if (!comp1 || !comp2) {
         qWarning() << "Cannot connect null components";
         return false;
@@ -207,7 +206,7 @@ bool Circuit::connectComponents(Component* comp1, int terminal1,
                  << "to" << comp2->getName() << "terminal" << terminal2
                  << "via new node" << node->getId();
         
-        emit circuitChanged();
+        changed = true;
         return true;
     }
     
@@ -215,14 +214,14 @@ bool Circuit::connectComponents(Component* comp1, int terminal1,
     if (node1 && !node2) {
         comp2->connectToNode(node1, terminal2);
         qDebug() << "Connected" << comp2->getName() << "to existing node" << node1->getId();
-        emit circuitChanged();
+        changed = true;
         return true;
     }
     
     if (node2 && !node1) {
         comp1->connectToNode(node2, terminal1);
         qDebug() << "Connected" << comp1->getName() << "to existing node" << node2->getId();
-        emit circuitChanged();
+        changed = true;
         return true;
     }
     
@@ -239,8 +238,13 @@ bool Circuit::connectComponents(Component* comp1, int terminal1,
         removeNode(node2);
         
         qDebug() << "Merged nodes" << node1->getId() << "and" << node2->getId();
-        emit circuitChanged();
+        changed = true;
         return true;
+    }
+
+    if (changed)
+    {
+        emit circuitChanged();
     }
     
     return false;
