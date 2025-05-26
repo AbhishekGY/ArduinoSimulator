@@ -64,7 +64,7 @@ void LED::calculateElectricalState()
     
     // Determine if LED is conducting
     // LED only conducts in forward bias (positive voltage, positive current)
-    bool forwardBiased = (m_voltage > 0 && m_current > 0);
+    bool forwardBiased = (m_voltage > 0);
     bool aboveThreshold = absVoltage >= m_forwardVoltage;
     bool sufficientCurrent = absCurrent > MIN_CONDUCTION_CURRENT;
     
