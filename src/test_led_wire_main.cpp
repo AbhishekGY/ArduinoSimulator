@@ -14,6 +14,7 @@
 #include "ui/CircuitCanvas.h"
 #include "ui/LEDGraphicsItem.h"
 #include "ui/WireGraphicsItem.h"
+#include "ui/ArduinoGraphicsItem.h"
 
 // Include backend components
 #include "simulation/Circuit.h"
@@ -254,9 +255,9 @@ private:
         QVBoxLayout* instructionLayout = new QVBoxLayout(instructionGroup);
         
         QLabel* instructions = new QLabel(
-            "1. Add LEDs using the button\n"
-            "2. Click on LED connection points to start wire drawing\n"
-            "3. Click on another LED connection point to complete wire\n"
+            "1. Add LEDs and Arduino using the buttons\n"
+            "2. Click on connection points to start wire drawing\n"
+            "3. Click on another connection point to complete wire\n"
             "4. Right-click or ESC to cancel wire drawing\n"
             "5. Start simulation to see electrical behavior\n"
             "6. Use Arduino controls to test LED circuits"
@@ -379,3 +380,5 @@ int main(int argc, char *argv[])
     
     return app.exec();
 }
+
+#include "test_led_wire_main.moc"

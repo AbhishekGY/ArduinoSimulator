@@ -56,7 +56,7 @@ QRectF LEDGraphicsItem::boundingRect() const
 {
     // LED body is 40x60 pixels (width x height)
     // Extra space for connection points and labels
-    return QRectF(-25, -35, 50, 70);
+    return QRectF(-40, -40, 80, 85);
 }
 
 void LEDGraphicsItem::paint(QPainter* painter, const QStyleOptionGraphicsItem* option, QWidget* widget)
@@ -128,7 +128,7 @@ void LEDGraphicsItem::paint(QPainter* painter, const QStyleOptionGraphicsItem* o
     if (label.isEmpty()) {
         label = "LED";
     }
-    painter->drawText(QRectF(-25, 35, 50, 15), Qt::AlignCenter, label);
+    painter->drawText(QRectF(-35, 30, 70, 15), Qt::AlignCenter, label);
     
     // Draw selection indicator
     if (isSelected()) {
@@ -159,7 +159,7 @@ void LEDGraphicsItem::paint(QPainter* painter, const QStyleOptionGraphicsItem* o
                       .arg(m_backendLED->getCurrent() * 1000, 0, 'f', 1)
                       .arg(m_backendLED->getPowerDissipation() * 1000, 0, 'f', 1);
         
-        painter->drawText(QRectF(25, -15, 80, 30), Qt::AlignLeft, info);
+        painter->drawText(QRectF(-35, -35, 70, 25), Qt::AlignLeft, info);
     }
 }
 

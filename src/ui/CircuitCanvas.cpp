@@ -131,11 +131,19 @@ ComponentGraphicsItem* CircuitCanvas::addArduino(const QPointF& position, Arduin
     // Set circuit for Arduino (this adds all pins as components)
     backendArduino->setCircuit(m_circuit);
     
-    // Create graphics item (assuming ArduinoGraphicsItem exists)
-    // ArduinoGraphicsItem* arduinoGraphics = new ArduinoGraphicsItem(backendArduino);
-    // For now, create a placeholder
-    qDebug() << "Arduino graphics item not yet implemented";
-    return nullptr;
+    // Create graphics item
+    ArduinoGraphicsItem* arduinoGraphics = new ArduinoGraphicsItem(backendArduino);
+    arduinoGraphics->setPos(snapToGrid(position));
+    
+    // Connect signals
+    connectComponentSignals(arduinoGraphics);
+    
+    // Add to scene
+    addItem(arduinoGraphics);
+    m_componentItems.append(arduinoGraphics);
+    
+    qDebug() << "Added Arduino at position" << position;
+    return arduinoGraphics;
 }
 
 void CircuitCanvas::removeComponent(ComponentGraphicsItem* component)
@@ -324,8 +332,23 @@ bool CircuitCanvas::createBackendConnection(ComponentGraphicsItem* comp1, int te
         return false;
     }
     
-    Component* backendComp1 = comp1->getBackendComponent();
-    Component* backendComp2 = comp2->getBackendComponent();
+    Component* backendComp1 = nullptr;
+    Component* backendComp2 = nullptr;
+
+    ArduinoGraphicsItem* arduino1 = qobject_cast<ArduinoGraphicsItem*>(comp1);
+    if (arduino1) {
+        backendComp1 = arduino1->getBackendPin(terminal1);
+    } else {
+        backendComp1 = comp1->getBackendComponent();
+    }
+
+    // Get backend component for comp2  
+    ArduinoGraphicsItem* arduino2 = qobject_cast<ArduinoGraphicsItem*>(comp2);
+    if (arduino2) {
+        backendComp2 = arduino2->getBackendPin(terminal2);
+    } else {
+        backendComp2 = comp2->getBackendComponent();
+    }
     
     if (!backendComp1 || !backendComp2) {
         qWarning() << "Cannot create backend connection: components have no backend";
